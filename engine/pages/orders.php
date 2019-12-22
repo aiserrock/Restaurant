@@ -18,6 +18,7 @@ $status = [
 ?>
 
 <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
         <h1 class="h2">Заказы</h1>
         <a href="/orders/new/" class="btn btn-success btn-lg">Создать заказ</a>
@@ -26,9 +27,9 @@ $status = [
     <table class="table">
         <thead>
         <tr>
-            <th scope="col">#</th>
+            <th scope="col">№</th>
             <th scope="col">Дата заказа</th>
-            <th scope="col"># стола</th>
+            <th scope="col">№ Стола</th>
             <th scope="col">Официант</th>
             <th scope="col">Скидка</th>
             <th scope="col">Чаевые</th>
@@ -65,8 +66,6 @@ HERE;
         }
 
         ?>
-
-
         </tbody>
     </table>
 

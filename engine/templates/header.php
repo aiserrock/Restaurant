@@ -10,7 +10,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Dashboard Template for Bootstrap</title>
+    <title>Додо Ресторан</title>
 
     <link rel="canonical" href="https://getbootstrap.com/docs/4.0/examples/dashboard/">
 
@@ -19,6 +19,9 @@
 
     <!-- Custom styles for this template -->
     <link href="/assets/css/dashboard.css" rel="stylesheet">
+
+    <!--header icon-->
+    <link rel="shortcut icon" href="/assets/img/logo.png" type="image/x-icon">
 </head>
 
 <body>
@@ -43,39 +46,27 @@
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link" href="/orders/new/">
-                            <span data-feather="file"></span>
-                            Создать заказ
+                        <a class="nav-link" href="/">
+                            <span data-feather="command"></span>
+                            Главная
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/orders/">
-                            <span data-feather="file"></span>
+                            <span data-feather="shopping-cart"></span>
                             Заказы
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/dishes/">
-                            <span data-feather="shopping-cart"></span>
+                            <span data-feather="file"></span>
                             Блюда
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">
-                            <span data-feather="users"></span>
-                            Customers
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <span data-feather="bar-chart-2"></span>
-                            Reports
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <span data-feather="layers"></span>
-                            Integrations
+                            <span data-feather="book-open"></span>
+                            Столы
                         </a>
                     </li>
                 </ul>
