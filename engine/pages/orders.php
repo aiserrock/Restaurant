@@ -5,7 +5,7 @@ if (!defined('security_hash')) {
 }
 
 $orders = DB::getAll("
-SELECT * FROM orders
+SELECT orders.id, orders.tables_id, orders.waiters_id, orders.sale, orders.tips, w.name, orders.order_date, orders.status, oc.total_price   FROM orders
 JOIN order_costs oc ON (orders.id = oc.order_id)
 JOIN waiters w ON (orders.waiters_id = w.id)
 ");
@@ -43,7 +43,7 @@ $status = [
 
         <?
         foreach ($orders AS $order) {
-            $sum_without_sale = $order['total_price'] / (100 - $order['sale']) * 100;
+            $sum_without_sale = ($order['sale'] != 100) ? ($order['total_price'] / (100 - $order['sale']) * 100) : 0;
             $date = date("j.n.Y H:i", $order['order_date']);
 
             $date = new DateTime($order['order_date']);
@@ -58,7 +58,7 @@ $status = [
             <td>{$sum_without_sale} руб.</td>
             <td>{$order['total_price']} руб.</td>
             <td>{$status[$order['status']]}</td>
-            <td><a href="/orders/view/?id={$order['id']}" class="btn btn-sm btn-outline-warning"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="css-i6dzq1"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></a></td>
+            <td><a href="/orders/new/?id={$order['id']}" class="btn btn-sm btn-outline-warning"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="css-i6dzq1"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></a></td>
         </tr>
 HERE;
 

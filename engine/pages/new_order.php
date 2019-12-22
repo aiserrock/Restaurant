@@ -3,251 +3,230 @@ if (!defined('security_hash')) {
     die("Недостаточно прав");
 }
 
+if (isset($_POST['table'], $_POST['dish'], $_POST['quantity']) && $_SESSION['id'] > 0) {
+    $sale = intval($_POST['sale']);
+    $sale = ($sale >= 0 && $sale <= 100) ? $sale : 0;
 
+    $tips = intval($_POST['tips']) ?? 0;
+    $tips = abs($tips);
+
+    $table_id = intval($_POST['table']) ?? 0;
+
+    $dish = $_POST['dish'] ?? [];
+    $quantity = $_POST['quantity'] ?? [];
+
+    if (count($dish) == count($quantity) && count($quantity) > 0) {
+        $db_order_id = DB::add("INSERT INTO orders 
+        (tables_id, waiters_id, sale, tips, status) 
+        VALUES (:table_id, :waiter_id, :sale, :tips, :status)",
+            [
+                'table_id' => $table_id,
+                'waiter_id' => $_SESSION['id'],
+                'sale' => $sale,
+                'tips' => $tips,
+                'status' => 'new'
+            ]);
+
+        if (intval($db_order_id) > 0) {
+            for ($i = 0; $i < count($dish); $i++) {
+                $d = intval($dish[$i]);
+                $q = intval($quantity[$i]);
+                DB::add("INSERT INTO dishes_orders 
+                    (orders_id, dishes_id, quantity)
+                    VALUES (:order_id, :dish_id, :quantity)",
+                    [
+                        'order_id' => $db_order_id,
+                        'dish_id' => $d,
+                        'quantity' => $q
+                    ]);
+            }
+        } else {
+            $error = 1;
+        }
+    }
+
+}
 
 $tables = DB::getAll("SELECT id FROM tables WHERE status = 1");
 $dishes = DB::getAll("SELECT * FROM dishes");
 
 $order_id = intval($_GET['id']);
+if (isset($db_order_id)) $order_id = $db_order_id;
 $order = DB::getRow("SELECT * From orders join order_costs oc on orders.id = oc.order_id where id = ?", [$order_id]);
-
-$countItemInOrder=DB::getAll("
-select orders_id as 'id', SUM(quantity) as 'quantity'
+$sum_without_sale = ($order['sale'] != 100) ? $order['total_price'] / (100 - $order['sale']) * 100 : 0;
+//$user = DB::getRow("SELECT * FROM waiters WHERE username = ?", [$username]);
+$countItemInOrder = DB::getAll("
+select SUM(quantity) as 'quantity'
 from dishes_orders
+WHERE orders_id = ?
 GROUP BY orders_id
-ORDER BY orders_id");
-function countItemInCart($countItemInOrder):int{
-    foreach ($countItemInOrder as $item){
-        if($item['id']==intval($_GET['id'])){
-            return $item['quantity'];
-        }else{
-            return 0;
-        }
+ORDER BY orders_id", [$order_id]);
 
-    }
-}
+$orders = DB::getAll("
+SELECT * FROM orders
+JOIN order_costs oc ON (orders.id = oc.order_id)
+JOIN waiters w ON (orders.waiters_id = w.id)
+");
+
+$dishesInOrder = DB::getAll("
+select name,cost,quantity
+from dishes_orders
+JOIN dishes d on dishes_orders.dishes_id = d.id
+WHERE orders_id =?
+ORDER BY orders_id", [$order_id]
+);
+
+
 ?>
 
-<main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+<main role="main" class="col-md-10 ml-sm-auto col-lg-10 pt-3 px-4">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-        <h1 class="h2">Добавить заказ №<?=$order['id']?></h1>
+        <h1 class="h2">Добавить заказ <? if (isset($order['id'])) echo "№" . $order['id'] ?></h1>
     </div>
+    <form method="post">
+        <div class="row">
+            <div class="col-md-4 order-md-2 mb-4">
+                <h4 class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-muted">Корзина</span>
+                    <span class="badge badge-secondary badge-pill"><?= $countItemInOrder[0]['quantity'] ?? '' ?></span>
+                </h4>
+                <!--            --><? // print_r($_GET) ?>
+                <!--            --><? // print_r($countItemInOrder)?>
+                <!--                        --><? // print_r($countItemInOrder)?>
+                <ul class="list-group mb-3">
+                    <?
+                    if (count($tables) > 0)
+                        foreach ($dishesInOrder as $item) {
+                            print <<<HERE
+                    <li class="list-group-item d-flex justify-content-between lh-condensed">
+                        <div>
+                            <h6 class="my-0">{$item['name']} <span class="text-muted">x {$item['quantity']}</span></h6>
+                        </div>
+                        
+                        
+                        <span class="text-muted">{$item['cost']} &#8381;</span>
+                    </li>
+HERE;
+                        }
+                    ?>
 
-    <div class="row">
-        <div class="col-md-4 order-md-2 mb-4">
-            <h4 class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-muted">Корзина</span>
-                <span class="badge badge-secondary badge-pill"><?= countItemInCart($countItemInOrder)?></span>
-            </h4>
-<!--            --><?// print_r($_GET) ?>
-<!--            --><?// print_r($countItemInOrder)?>
-            <ul class="list-group mb-3">
-                <li class="list-group-item d-flex justify-content-between lh-condensed">
-                    <div>
-                        <h6 class="my-0">Product name</h6>
-                        <small class="text-muted">Brief description</small>
-                    </div>
-                    <span class="text-muted">$12</span>
-                </li>
-                <li class="list-group-item d-flex justify-content-between lh-condensed">
-                    <div>
-                        <h6 class="my-0">Second product</h6>
-                        <small class="text-muted">Brief description</small>
-                    </div>
-                    <span class="text-muted">$8</span>
-                </li>
-                <li class="list-group-item d-flex justify-content-between lh-condensed">
-                    <div>
-                        <h6 class="my-0">Third item</h6>
-                        <small class="text-muted">Brief description</small>
-                    </div>
-                    <span class="text-muted">$5</span>
-                </li>
-                <li class="list-group-item d-flex justify-content-between bg-light">
-                    <div class="text-success">
-                        <h6 class="my-0">Promo code</h6>
-                        <small>EXAMPLECODE</small>
-                    </div>
-                    <span class="text-success">-$5</span>
-                </li>
-                <li class="list-group-item d-flex justify-content-between">
-                    <span>Total (Руб)</span>
-                    <strong><?=$order['total_price']?></strong>
-                </li>
-            </ul>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Итог (Без скидки):</span>
+                        <strong><?= $sum_without_sale ?? '0' ?> &#8381;</strong>
+                    </li>
 
-            <form class="card p-2">
-                <div class="input-group">
-                    <input type="text" class="form-control" placeholder="Скидка">
-                    <div class="input-group-append">
-                        <button type="submit" class="btn btn-secondary">Подтвердить</button>
-                    </div>
-                </div>
-                <br>
-                <div class="input-group">
-                    <input type="text" class="form-control" placeholder="Чаевые">
-                    <div class="input-group-append">
-                        <button type="submit" class="btn btn-secondary">Подтвердить</button>
-                    </div>
-                </div>
-            </form>
-        </div>
+                    <? if ($order['sale'] > 0) : ?>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Скидка :</span>
+                            <strong><?= $order['sale'] ?> %</strong>
+                        </li>
+                    <? endif; ?>
 
-        <div class="col-md-8 order-md-1">
-<!--            <h4 class="mb-3">Billing address</h4>-->
-            <form class="needs-validation" novalidate="">
-                <!--<div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="firstName">First name</label>
-                        <input type="text" class="form-control" id="firstName" placeholder="" value="" required="">
-                        <div class="invalid-feedback">
-                            Valid first name is required.
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Итог:</span>
+                        <strong><?= $order['total_price'] ?? '0' ?> &#8381;</strong>
+                    </li>
+
+
+                </ul>
+
+                <div class="card p-2">
+                    <div class="input-group">
+                        <input name="sale" type="number" class="form-control" placeholder="Скидка" min="0" max="100">
+                        <div class="input-group-append">
+                            <span class="input-group-text">%</span>
+                        </div>
+
+                    </div>
+
+                    <div class="input-group mt-3">
+                        <input name="tips" type="text" class="form-control" placeholder="Чаевые">
+                        <div class="input-group-append">
+                            <span class="input-group-text">&#8381;</span>
                         </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label for="lastName">Last name</label>
-                        <input type="text" class="form-control" id="lastName" placeholder="" value="" required="">
-                        <div class="invalid-feedback">
-                            Valid last name is required.
-                        </div>
-                    </div>
-                </div>-->
+                </div>
 
-<!--                <div class="mb-3">-->
-<!--                    <label for="username">Username</label>-->
-<!--                    <div class="input-group">-->
-<!--                        <div class="input-group-prepend">-->
-<!--                            <span class="input-group-text">@</span>-->
-<!--                        </div>-->
-<!--                        <input type="text" class="form-control" id="username" placeholder="Username" required="">-->
-<!--                        <div class="invalid-feedback" style="width: 100%;">-->
-<!--                            Your username is required.-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                </div>-->
-<!---->
-<!--                <div class="mb-3">-->
-<!--                    <label for="email">Email <span class="text-muted">(Optional)</span></label>-->
-<!--                    <input type="email" class="form-control" id="email" placeholder="you@example.com">-->
-<!--                    <div class="invalid-feedback">-->
-<!--                        Please enter a valid email address for shipping updates.-->
-<!--                    </div>-->
-<!--                </div>-->
-<!---->
-<!--                <div class="mb-3">-->
-<!--                    <label for="address">Address</label>-->
-<!--                    <input type="text" class="form-control" id="address" placeholder="1234 Main St" required="">-->
-<!--                    <div class="invalid-feedback">-->
-<!--                        Please enter your shipping address.-->
-<!--                    </div>-->
-<!--                </div>-->
-<!---->
-<!--                <div class="mb-3">-->
-<!--                    <label for="address2">Address 2 <span class="text-muted">(Optional)</span></label>-->
-<!--                    <input type="text" class="form-control" id="address2" placeholder="Apartment or suite">-->
-<!--                </div>-->
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary btn-lg btn-block">Добавить заказ</button>
+                </div>
 
+            </div>
+
+            <div class="col-md-8 order-md-1">
                 <div class="row">
-                    <div class="col-md-5 mb-3">
-                        <label for="country">Стол</label>
-                        <select class="custom-select d-block w-100" id="table" name="table" required="">
-                            <option value="">Выберите стол...</option>
-                            <?
-                            foreach ($tables as $table) {
-                                echo "<option value='{$table['id']}'>{$table['id']}</option>";
-                            }
-                            ?>
-                        </select>
-                        <div class="invalid-feedback">
-                            Please select a valid country.
+                    <div class="row col-md-12">
+                        <div class="col-md-8 mb-3">
+                            <label for="country">Стол</label>
+                            <select class="custom-select d-block w-100" id="table" name="table" required="">
+                                <option value="" hidden>Выберите стол...</option>
+                                <?
+                                if (count($tables) > 0)
+                                    foreach ($tables as $table) {
+                                        echo "<option value='{$table['id']}'>{$table['id']}</option>";
+                                    }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <div class=" mt-auto">
+                                <a id="add_dish" href="javascript:" class="btn btn-sm btn-success mb-1">+</a>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="state">Блюдо</label>
-                        <select class="custom-select d-block w-100" id="state" required="">
-                            <option value="">Выберите блюдо...</option>
-                            <?
-                            foreach ($dishes as $dish) {
-                                echo "<option value='{$dish['id']}'>{$dish['name']} - {$dish['cost']}руб.</option>";
-                            }
-                            ?>
-                        </select>
-                        <div class="invalid-feedback">
-                            Please provide a valid state.
-                        </div>
-                    </div>
-<!--                    <div class="col-md-3 mb-3">-->
-<!--                        <label for="zip">Zip</label>-->
-<!--                        <input type="text" class="form-control" id="zip" placeholder="" required="">-->
-<!--                        <div class="invalid-feedback">-->
-<!--                            Zip code required.-->
-<!--                        </div>-->
-<!--                    </div>-->
-                </div>
-<!--                <hr class="mb-4">-->
-<!--                <div class="custom-control custom-checkbox">-->
-<!--                    <input type="checkbox" class="custom-control-input" id="same-address">-->
-<!--                    <label class="custom-control-label" for="same-address">Shipping address is the same as my billing address</label>-->
-<!--                </div>-->
-<!--                <div class="custom-control custom-checkbox">-->
-<!--                    <input type="checkbox" class="custom-control-input" id="save-info">-->
-<!--                    <label class="custom-control-label" for="save-info">Save this information for next time</label>-->
-<!--                </div>-->
-<!--                <hr class="mb-4">-->
-<!---->
-<!--                <h4 class="mb-3">Payment</h4>-->
-<!---->
-<!--                <div class="d-block my-3">-->
-<!--                    <div class="custom-control custom-radio">-->
-<!--                        <input id="credit" name="paymentMethod" type="radio" class="custom-control-input" checked="" required="">-->
-<!--                        <label class="custom-control-label" for="credit">Credit card</label>-->
-<!--                    </div>-->
-<!--                    <div class="custom-control custom-radio">-->
-<!--                        <input id="debit" name="paymentMethod" type="radio" class="custom-control-input" required="">-->
-<!--                        <label class="custom-control-label" for="debit">Debit card</label>-->
-<!--                    </div>-->
-<!--                    <div class="custom-control custom-radio">-->
-<!--                        <input id="paypal" name="paymentMethod" type="radio" class="custom-control-input" required="">-->
-<!--                        <label class="custom-control-label" for="paypal">Paypal</label>-->
-<!--                    </div>-->
-<!--                </div>-->
-<!--                <div class="row">-->
-<!--                    <div class="col-md-6 mb-3">-->
-<!--                        <label for="cc-name">Name on card</label>-->
-<!--                        <input type="text" class="form-control" id="cc-name" placeholder="" required="">-->
-<!--                        <small class="text-muted">Full name as displayed on card</small>-->
-<!--                        <div class="invalid-feedback">-->
-<!--                            Name on card is required-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                    <div class="col-md-6 mb-3">-->
-<!--                        <label for="cc-number">Credit card number</label>-->
-<!--                        <input type="text" class="form-control" id="cc-number" placeholder="" required="">-->
-<!--                        <div class="invalid-feedback">-->
-<!--                            Credit card number is required-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                </div>-->
-<!--                <div class="row">-->
-<!--                    <div class="col-md-3 mb-3">-->
-<!--                        <label for="cc-expiration">Expiration</label>-->
-<!--                        <input type="text" class="form-control" id="cc-expiration" placeholder="" required="">-->
-<!--                        <div class="invalid-feedback">-->
-<!--                            Expiration date required-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                    <div class="col-md-3 mb-3">-->
-<!--                        <label for="cc-expiration">CVV</label>-->
-<!--                        <input type="text" class="form-control" id="cc-cvv" placeholder="" required="">-->
-<!--                        <div class="invalid-feedback">-->
-<!--                            Security code required-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                </div>-->
-                <hr class="mb-4">
-                <button class="btn btn-primary btn-lg btn-block" type="submit">Continue to checkout</button>
-            </form>
-        </div>
-    </div>
+                    <div id="dishes" class="row col-md-12">
+                        <div id="dish_default" class="dish row col-md-12 mb-3">
+                            <div class="col-md-7">
+                                <label for="table">Блюдо</label>
+                                <select class="custom-select d-block w-100" name="dish[]" required="">
+                                    <option value="" hidden>Выберите блюдо...</option>
+                                    <?
+                                    foreach ($dishes as $dish) {
+                                        echo "<option value='{$dish['id']}'>{$dish['name']} - {$dish['cost']}руб.</option>";
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="quantity">Количество</label>
+                                <input type="number" name="quantity[]" class="quantity form-control" min="1"
+                                       max="99"
+                                       placeholder=""
+                                       autocomplete="off">
 
+                                <div class="invalid-feedback">
+                                    Неверные значения
+                                </div>
+                            </div>
+                            <div class="col-md-1 mt-auto">
+                                <a href="javascript:" class="remove_dish btn btn-sm btn-outline-warning mb-1">x</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
 </main>
+
+<script>
+    $(function () {
+        let dishes = $('#dishes');
+
+        $('#add_dish').click(function () {
+            let obj = $('#dish_default').clone();
+            obj.removeAttr('id');
+            obj.find('.quantity').val('');
+            obj.appendTo(dishes);
+            return false;
+        });
+
+        $('.remove_dish').click(function () {
+            console.log("1");
+            $(this).remove();
+            return false;
+        });
+    });
+
+
+</script>

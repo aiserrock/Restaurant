@@ -22,6 +22,7 @@
 
     <!--header icon-->
     <link rel="shortcut icon" href="/assets/img/logo.png" type="image/x-icon">
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 </head>
 
 <body>
@@ -41,7 +42,7 @@
                 <ul class="nav flex-column">
                     <li class="nav-item">
                         <p class="nav-link">
-                            Пользователь: <?=$_SESSION['username'] ?>
+                            Пользователь: <?= $_SESSION['username'] ?>
                         </p>
                     </li>
 
