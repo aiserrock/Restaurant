@@ -18,9 +18,11 @@ if (!isset($_SESSION['id'])) {
 if ($route == 'login' || $route == 'logout') {
     require_once "engine/pages/{$route}.php";
 } else {
+    ob_start();
     require_once 'engine/templates/header.php';
     require_once get_route($route, $routes);
     require_once 'engine/templates/footer.php';
+    ob_end_flush();
 }
 
 

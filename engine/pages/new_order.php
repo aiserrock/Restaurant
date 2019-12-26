@@ -44,8 +44,11 @@ if (isset($_POST['table'], $_POST['dish'], $_POST['quantity']) && $_SESSION['id'
             $error = 1;
         }
     }
-
+    ob_end_clean();
+    header("Location: /orders/change?id=$db_order_id");
+    exit;
 }
+
 
 $tables = DB::getAll("SELECT id FROM tables WHERE status = 1");
 $dishes = DB::getAll("SELECT * FROM dishes");
@@ -60,6 +63,8 @@ select SUM(quantity) as 'quantity'
 from dishes_orders
 WHERE orders_id = ?
 GROUP BY orders_id
+
+
 ORDER BY orders_id", [$order_id]);
 
 $orders = DB::getAll("
@@ -83,53 +88,9 @@ ORDER BY orders_id", [$order_id]
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
         <h1 class="h2">Добавить заказ <? if (isset($order['id'])) echo "№" . $order['id'] ?></h1>
     </div>
-    <form method="post">
+    <form method="post" action="">
         <div class="row">
             <div class="col-md-4 order-md-2 mb-4">
-                <h4 class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="text-muted">Корзина</span>
-                    <span class="badge badge-secondary badge-pill"><?= $countItemInOrder[0]['quantity'] ?? '' ?></span>
-                </h4>
-                <!--            --><? // print_r($_GET) ?>
-                <!--            --><? // print_r($countItemInOrder)?>
-                <!--                        --><? // print_r($countItemInOrder)?>
-                <ul class="list-group mb-3">
-                    <?
-                    if (count($tables) > 0)
-                        foreach ($dishesInOrder as $item) {
-                            print <<<HERE
-                    <li class="list-group-item d-flex justify-content-between lh-condensed">
-                        <div>
-                            <h6 class="my-0">{$item['name']} <span class="text-muted">x {$item['quantity']}</span></h6>
-                        </div>
-                        
-                        
-                        <span class="text-muted">{$item['cost']} &#8381;</span>
-                    </li>
-HERE;
-                        }
-                    ?>
-
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Итог (Без скидки):</span>
-                        <strong><?= $sum_without_sale ?? '0' ?> &#8381;</strong>
-                    </li>
-
-                    <? if ($order['sale'] > 0) : ?>
-                        <li class="list-group-item d-flex justify-content-between">
-                            <span>Скидка :</span>
-                            <strong><?= $order['sale'] ?> %</strong>
-                        </li>
-                    <? endif; ?>
-
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Итог:</span>
-                        <strong><?= $order['total_price'] ?? '0' ?> &#8381;</strong>
-                    </li>
-
-
-                </ul>
-
                 <div class="card p-2">
                     <div class="input-group">
                         <input name="sale" type="number" class="form-control" placeholder="Скидка" min="0" max="100">
@@ -199,7 +160,7 @@ HERE;
                                 </div>
                             </div>
                             <div class="col-md-1 mt-auto">
-                                <a href="javascript:" class="remove_dish btn btn-sm btn-outline-warning mb-1">x</a>
+<!--                                <a href="javascript:" class="remove_dish btn btn-sm btn-outline-warning mb-1">x</a>-->
                             </div>
                         </div>
                     </div>
@@ -213,8 +174,11 @@ HERE;
     $(function () {
         let dishes = $('#dishes');
 
+
         $('#add_dish').click(function () {
+
             let obj = $('#dish_default').clone();
+
             obj.removeAttr('id');
             obj.find('.quantity').val('');
             obj.appendTo(dishes);
